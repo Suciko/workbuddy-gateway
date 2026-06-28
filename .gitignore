@@ -12,7 +12,8 @@ keys.json*
 *.log
 logs/
 
-# --- Python ---
+# --- AI 知识库 (不上传 GitHub，私密共享) ---
+.agents/
 __pycache__/
 *.pyc
 *.pyo
