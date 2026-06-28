@@ -1,0 +1,48 @@
+# --- 敏感凭证 (绝对不能提交) ---
+accounts/
+.codebuddy_creds/
+keys.json*
+
+# --- 数据库 ---
+*.db
+*.sqlite
+*.sqlite3
+
+# --- 日志 ---
+*.log
+logs/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# --- 配置文件 (本地覆盖) ---
+.env
+config/config.json
+config/local.json
+
+# --- 临时/备份文件 ---
+*.bak
+nul
+scratch/
+backup_nodejs/
+*.tar.gz
+
+# --- IDE / 编辑器 ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- OS ---
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# --- Docker ---
+# (保留 Dockerfile 和 docker-compose.yml)
+# 本地构建产物不要提交
+docker-compose.override.yml
