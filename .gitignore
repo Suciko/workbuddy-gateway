@@ -43,52 +43,12 @@ Thumbs.db
 .DS_Store
 Desktop.ini
 
-# --- 运行时文件 (含服务器 IP/密码，私密共享) ---
-local_proxy.js
-dashboard.html
-AI_INSTRUCTIONS.md
-MEMORY.md
-checkin_multi.py
-checkin_api.py
-inject.js
-inject_footer.py
-inject_footer_remote.py
-inject_server_backup.js
-remote_inject_decoded.js
-sui-sandbox.css
-update_console_content.py
-update_announcements_v2.py
-update_announcements_only.py
-browser_script.txt
-remote_status.json
-leak_remote.py
-leak_remote2.py
-leak_remote3.py
-shot_guest.py
-diag_launch.py
-diag_window_visible.py
-test_launch.py
-scratch_sync_db.py
-scratch_cloud_footer.html
-scratch_cloud_footer.js
-scratch_cloud_footer_check.html
-scratch_run.bat
-diag_*.png
-template_claim.png
-keys.json.bak
-install_startup.vbs
-setup_scheduled_checkin.bat
-start_gateway.bat
-start_proxy.bat
-start_proxy_hidden.vbs
-stop_proxy.bat
-new-api.exe
-new-api.exe.bak
-proxy_stderr.log
-proxy_stdout.log
-error.log
-PRIVATE_PACKAGE_README.txt
-codebuddy2api.tar.gz
+# --- 临时/备份文件 ---
+*.bak
+nul
+scratch/
+backup_nodejs/
+*.tar.gz
 
 # --- Docker ---
 # (保留 Dockerfile 和 docker-compose.yml)

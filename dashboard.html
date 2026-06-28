@@ -1,0 +1,3234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkBuddy 自动签到与额度监控控制台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --card-bg: rgba(30, 32, 40, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f5f6fa;
+            --text-secondary: #a0a5b5;
+            --primary: #47a3ff;
+            --primary-hover: #1f8eff;
+            --primary-glow: rgba(71, 163, 255, 0.3);
+            --success: #00e676;
+            --success-glow: rgba(0, 230, 118, 0.2);
+            --error: #ff5252;
+            --error-glow: rgba(255, 82, 82, 0.2);
+            --warning: #ffb142;
+            --terminal-bg: #14151a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(71, 163, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 230, 118, 0.03) 0%, transparent 40%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 24px;
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--success));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .logo-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: white;
+        }
+
+        .logo-title h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-title p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            min-width: 0;
+            width: 100%;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 0;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 14px;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .card-title svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+        }
+
+        .badge {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .badge-info {
+            background: rgba(71, 163, 255, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(71, 163, 255, 0.2);
+        }
+
+        /* Accounts list */
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .item-row:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .item-avatar {
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .item-avatar svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-secondary);
+        }
+
+        .item-meta h3 {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .item-meta p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Channel Status Styles */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-checking {
+            background: rgba(255, 177, 66, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(255, 177, 66, 0.2);
+        }
+
+        .status-active {
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(0, 230, 118, 0.2);
+            box-shadow: 0 0 10px var(--success-glow);
+        }
+
+        .status-exhausted {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(255, 82, 82, 0.2);
+            box-shadow: 0 0 10px var(--error-glow);
+        }
+
+        .status-error {
+            background: rgba(160, 165, 181, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(160, 165, 181, 0.2);
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px var(--primary-glow);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Integration + check-in health refresh */
+        #integrate-card {
+            gap: 14px;
+            padding: 22px 24px;
+        }
+
+        #integrate-card > .card-header + div {
+            display: grid !important;
+            grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.1fr);
+            gap: 14px !important;
+            align-items: stretch !important;
+            padding: 0 !important;
+        }
+
+        #integrate-card > .card-header + div > div {
+            min-width: 0 !important;
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.055);
+        }
+
+        #integrate-card input {
+            height: 40px;
+        }
+
+        .checkin-health-card {
+            gap: 16px;
+        }
+
+        .health-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .health-metric {
+            min-height: 92px;
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.055);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .health-metric-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .health-metric-value {
+            font-size: 24px;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.2;
+        }
+
+        .health-metric-note {
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .health-detail-grid {
+            display: grid;
+            grid-template-columns: 1.35fr 0.65fr;
+            gap: 14px;
+        }
+
+        .health-panel {
+            min-width: 0;
+            padding: 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.018);
+            border: 1px solid rgba(255, 255, 255, 0.045);
+        }
+
+        .health-panel-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .health-account-list,
+        .health-latest-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .health-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 1fr) minmax(150px, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .health-row-main {
+            min-width: 0;
+        }
+
+        .health-row-title {
+            font-size: 13px;
+            font-weight: 650;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .health-row-sub {
+            margin-top: 3px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .health-status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 74px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .health-status-pill.ok {
+            color: var(--success);
+            background: rgba(0, 230, 118, 0.1);
+            border: 1px solid rgba(0, 230, 118, 0.2);
+        }
+
+        .health-status-pill.fail {
+            color: var(--error);
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid rgba(255, 82, 82, 0.2);
+        }
+
+        .health-status-pill.wait {
+            color: var(--warning);
+            background: rgba(255, 177, 66, 0.1);
+            border: 1px solid rgba(255, 177, 66, 0.2);
+        }
+
+        .health-status-pill.muted {
+            color: var(--text-secondary);
+            background: rgba(160, 165, 181, 0.1);
+            border: 1px solid rgba(160, 165, 181, 0.18);
+        }
+
+        /* 余额预警样式：warn=黄色低额，danger=红色耗尽 */
+        .health-status-pill.warn {
+            color: var(--warning);
+            background: rgba(255, 177, 66, 0.16);
+            border: 1px solid rgba(255, 177, 66, 0.45);
+            box-shadow: 0 0 0 1px rgba(255, 177, 66, 0.1);
+        }
+        .health-status-pill.danger {
+            color: var(--error);
+            background: rgba(255, 82, 82, 0.18);
+            border: 1px solid rgba(255, 82, 82, 0.5);
+            box-shadow: 0 0 0 1px rgba(255, 82, 82, 0.12);
+        }
+        .balance-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .balance-badge.warn { background: rgba(255, 177, 66, 0.22); color: var(--warning); }
+        .balance-badge.danger { background: rgba(255, 82, 82, 0.22); color: var(--error); }
+        .balance-threshold-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: var(--terminal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+        .balance-threshold-bar label { color: var(--text-secondary); white-space: nowrap; }
+        .balance-threshold-bar input {
+            width: 90px;
+            padding: 5px 9px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        .balance-threshold-hint { color: var(--text-secondary); font-size: 11px; }
+
+        .console-card {
+            gap: 14px;
+        }
+
+        /* Console Section */
+        .console-card {
+            grid-column: span 2;
+        }
+
+        .full-width-card {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 1024px) {
+            .console-card,
+            .full-width-card {
+                grid-column: span 1;
+            }
+        }
+
+        /* Stats Card */
+        .stats-boxes {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-boxes {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, rgba(71, 163, 255, 0.08), rgba(0, 230, 118, 0.04));
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 18px 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            opacity: 0.6;
+        }
+
+        .stat-box:hover {
+            background: linear-gradient(135deg, rgba(71, 163, 255, 0.12), rgba(0, 230, 118, 0.08));
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stat-box .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.2;
+        }
+
+        .stat-box .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            font-weight: 500;
+        }
+
+        /* Cache Stats Grid (CC Switch Style) */
+        .cache-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        @media (max-width: 1024px) {
+            .cache-stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            .cache-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .cache-stat-card {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 12px 14px;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .cache-stat-card:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.07);
+        }
+
+        .cache-stat-val {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .cache-stat-lbl {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .cache-rate-card {
+            grid-column: span 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        @media (max-width: 1024px) {
+            .cache-rate-card {
+                grid-column: span 2;
+            }
+        }
+
+        .cache-rate-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .cache-rate-val {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--success);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .cache-rate-bar-track {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 3px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .cache-rate-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 3px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Stats Subgrid & User Monitor Styling */
+        .stats-subgrid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 24px;
+            margin-top: 20px;
+        }
+        .stats-subgrid > * {
+            min-width: 0;
+        }
+        @media (max-width: 1024px) {
+            .stats-subgrid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .user-table-wrapper {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 8px;
+            max-height: 250px;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: auto;
+        }
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 12px;
+        }
+        .user-table th {
+            font-weight: 500;
+            padding: 8px 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-secondary);
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .user-table td {
+            padding: 10px 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-family: 'JetBrains Mono', monospace;
+            vertical-align: middle;
+        }
+        .user-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .user-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .user-badge-green {
+            background: rgba(0, 230, 118, 0.1);
+            color: #00e676;
+            border: 1px solid rgba(0, 230, 118, 0.2);
+        }
+        .user-badge-orange {
+            background: rgba(255, 145, 0, 0.1);
+            color: #ff9100;
+            border: 1px solid rgba(255, 145, 0, 0.2);
+        }
+        .user-badge-red {
+            background: rgba(255, 23, 68, 0.1);
+            color: #ff1744;
+            border: 1px solid rgba(255, 23, 68, 0.2);
+        }
+
+        /* Bar Chart */
+        .bar-chart-section {
+            margin-top: 4px;
+        }
+
+        .bar-chart-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bar-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            min-width: 140px;
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            background: linear-gradient(90deg, var(--primary), rgba(71, 163, 255, 0.6));
+            transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            min-width: fit-content;
+        }
+
+        .bar-fill span {
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+
+        /* Checkin History Timeline */
+        .history-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 12px 0;
+            position: relative;
+            transition: background 0.2s ease;
+        }
+
+        .timeline-item:not(:last-child) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .timeline-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .timeline-dot-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 2px;
+            min-width: 16px;
+        }
+
+        .timeline-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .timeline-dot.success {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success-glow);
+        }
+
+        .timeline-dot.fail {
+            background: var(--error);
+            box-shadow: 0 0 8px var(--error-glow);
+        }
+
+        .timeline-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .timeline-content .tl-msg {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .timeline-content .tl-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 3px;
+            display: flex;
+            gap: 12px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Schedule Badge */
+        .schedule-badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .schedule-badge.enabled {
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(0, 230, 118, 0.2);
+        }
+
+        .schedule-badge.disabled {
+            background: rgba(160, 165, 181, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(160, 165, 181, 0.2);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.4s ease forwards;
+        }
+
+        .console-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .console-area {
+            background: var(--terminal-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            height: 220px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: inset 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (max-width: 1024px) {
+            #integrate-card > .card-header + div,
+            .health-detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .health-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .health-row {
+                grid-template-columns: 1fr;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 12px;
+                gap: 14px;
+            }
+
+            header,
+            .card {
+                padding: 16px;
+                border-radius: 14px;
+            }
+
+            .card-header {
+                align-items: flex-start;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+
+            .health-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #integrate-card > .card-header + div > div {
+                padding: 14px;
+            }
+
+            #key-input {
+                min-width: 0 !important;
+                width: 100%;
+            }
+
+            .cloud-sync-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .console-header-actions {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+        }
+
+        .console-line {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .line-system {
+            color: #576574;
+        }
+
+        .line-info {
+            color: var(--primary);
+        }
+
+        .line-success {
+            color: var(--success);
+        }
+
+        .line-error {
+            color: var(--error);
+        }
+
+        .line-warning {
+            color: var(--warning);
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background: var(--primary);
+            animation: blink 1s infinite;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .quick-links {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .link-card {
+            flex: 1;
+            min-width: 200px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .link-card:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .link-info-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .link-info-box span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .link-info-box p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .link-card svg {
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary);
+            transition: transform 0.2s ease;
+        }
+
+        .link-card:hover svg {
+            transform: translateX(4px);
+            color: var(--primary);
+        }
+
+        /* Credits Detail Card Styling */
+        .credits-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .channel-credits-card {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        body.light .channel-credits-card {
+            background: #fafbfc;
+            border-color: #e1e4e8;
+        }
+
+        .channel-credits-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 8px;
+        }
+
+        body.light .channel-credits-title {
+            border-bottom-color: #e1e4e8;
+        }
+
+        .credit-package-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        body.light .credit-package-item {
+            background: #ffffff;
+            border-color: #e1e4e8;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+        }
+
+        .credit-package-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .credit-package-name {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .credit-package-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .credit-package-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .credit-progress-track {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body.light .credit-progress-track {
+            background: #e1e4e8;
+        }
+
+        .credit-progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #8c4fff, #ab7fff);
+            box-shadow: 0 0 8px rgba(140, 79, 255, 0.3);
+            transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .credit-progress-values {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+        }
+
+        .credit-progress-values .left-val {
+            font-weight: 500;
+        }
+
+        .credit-progress-values .right-val {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .details-toggle {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0;
+            margin-top: 4px;
+            width: fit-content;
+        }
+
+        .details-toggle:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        .details-toggle svg {
+            width: 12px;
+            height: 12px;
+            transition: transform 0.2s ease;
+        }
+
+        .details-toggle.expanded svg {
+            transform: rotate(90deg);
+        }
+
+        .credits-sub-list {
+            margin-top: 8px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.06);
+            padding-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        body.light .credits-sub-list {
+            border-top-color: #e1e4e8;
+        }
+
+        .credits-sub-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            padding: 6px 8px;
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        body.light .credits-sub-item {
+            background: #fafbfc;
+            border-color: #e1e4e8;
+        }
+
+        .credits-sub-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .credits-sub-values {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+        }
+
+        .credits-sub-expire {
+            font-size: 10px;
+            color: var(--warning);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .credits-footer-tip {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+
+        /* ============================================
+           Light Mode Themes (GitHub/Arco Style)
+           ============================================ */
+        body.light {
+            --bg-color: #f6f8fa;
+            --card-bg: #ffffff;
+            --border-color: #e1e4e8;
+            --text-primary: #24292e;
+            --text-secondary: #586069;
+            --primary: #0366d6;
+            --primary-hover: #0056b3;
+            --primary-glow: rgba(3, 102, 214, 0.1);
+            --success: #28a745;
+            --success-glow: rgba(40, 167, 69, 0.1);
+            --error: #d73a49;
+            --error-glow: rgba(215, 58, 73, 0.1);
+            --warning: #f9826c;
+            --terminal-bg: #1e1e24; /* Keep terminal dark for developers */
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(3, 102, 214, 0.03) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(40, 167, 69, 0.02) 0%, transparent 40%);
+        }
+
+        body.light header {
+            box-shadow: 0 4px 16px 0 rgba(29, 33, 41, 0.04);
+            border-color: #e1e4e8;
+        }
+
+        body.light .card {
+            box-shadow: 0 4px 16px 0 rgba(29, 33, 41, 0.04);
+            border-color: #e1e4e8;
+        }
+
+        body.light .item-row {
+            background: #fafbfc;
+            border-color: #e1e4e8;
+        }
+
+        body.light .item-row:hover {
+            background: #f1f8ff;
+            border-color: #c8e1ff;
+        }
+
+        body.light .item-avatar {
+            background: #f1f8ff;
+        }
+
+        body.light .btn-secondary {
+            background: #fafbfc;
+            color: #24292e;
+            border: 1px solid #e1e4e8;
+        }
+
+        body.light .btn-secondary:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        body.light .stat-box {
+            background: linear-gradient(135deg, rgba(3, 102, 214, 0.04), rgba(40, 167, 69, 0.02));
+            border-color: #e1e4e8;
+        }
+
+        body.light .stat-box:hover {
+            background: linear-gradient(135deg, rgba(3, 102, 214, 0.08), rgba(40, 167, 69, 0.04));
+            border-color: #c8e1ff;
+        }
+
+        body.light .user-table-wrapper {
+            background: #fafbfc;
+            border-color: #e1e4e8;
+        }
+
+        body.light .user-table th {
+            border-bottom-color: #e1e4e8;
+        }
+
+        body.light .user-table td {
+            border-bottom-color: #f1f2f3;
+        }
+
+        body.light .user-table tbody tr:hover {
+            background: #f1f8ff;
+        }
+
+        body.light .bar-track {
+            background: #eaecef;
+        }
+
+        body.light .timeline-item:not(:last-child) {
+            border-bottom-color: #e1e4e8;
+        }
+
+        body.light .timeline-item:hover {
+            background: #f6f8fa;
+        }
+
+        body.light .console-area {
+            background: #1e1e24;
+            color: #e1e4e8;
+            border-color: #e1e4e8;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        body.light .console-area::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        body.light .link-card {
+            background: #ffffff;
+            border-color: #e1e4e8;
+        }
+
+        body.light .link-card:hover {
+            background: #f1f8ff;
+            border-color: #c8e1ff;
+        }
+
+        body.light ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        body.light ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        body.light ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        /* Light mode input & threshold bar overrides */
+        body.light input {
+            background: #ffffff !important;
+            color: #24292e !important;
+            border-color: #d1d5da !important;
+        }
+        body.light input::placeholder {
+            color: #959da5 !important;
+        }
+        body.light .balance-threshold-bar {
+            background: #f6f8fa !important;
+            border-color: #d1d5da !important;
+        }
+        body.light .balance-threshold-bar label {
+            color: #24292e !important;
+        }
+        body.light .balance-threshold-hint {
+            color: #586069 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+                </svg>
+            </div>
+            <div class="logo-title">
+                <h1>CodeBuddy 控制台</h1>
+                <p>自动签到 & 额度健康监控系统</p>
+            </div>
+        </div>
+        <div>
+            <span class="status-badge status-active">系统正常运行</span>
+        </div>
+    </header>
+
+    <div class="dashboard-grid">
+        <!-- 一键整合面板 -->
+        <div class="card full-width-card" id="integrate-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                    </svg>
+                    <span>⚡ 一键整合</span>
+                </div>
+                <span class="badge badge-info" id="integrate-status">就绪</span>
+            </div>
+            <div style="padding:16px; display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end;">
+                <!-- 自动检测导入本地 WorkBuddy 登录态 -->
+                <div style="flex:1; min-width:300px;">
+                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px;">方式一：自动导入本地已登录的 WorkBuddy 账号</div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <button class="btn btn-primary" id="btn-import-local" onclick="importLocalAccount()">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            导入本地已登录账号并同步
+                        </button>
+                        <span id="oauth-hint" style="font-size:11px; color:var(--text-secondary);">点击后自动读取本地 WorkBuddy 客户端登录态，写入号池并同步到云端。</span>
+                    </div>
+                </div>
+                <!-- 粘贴 key 整合 -->
+                <div style="flex:1; min-width:300px;">
+                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px;">方式二：直接粘贴 ck_ 开头的 API key</div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <input id="key-input" type="text" placeholder="ck_xxxxxxxxxx...." style="flex:1; min-width:220px; padding:8px 12px; background:var(--terminal-bg); border:1px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-family:'JetBrains Mono',monospace; font-size:12px;" />
+                        <button class="btn btn-primary" onclick="addKeyChannel()">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            整合
+                        </button>
+                    </div>
+                    <div id="key-result" style="font-size:11px; margin-top:6px; min-height:14px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check-in Health Card -->
+        <div class="card full-width-card checkin-health-card" id="checkin-health-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 6 9 17l-5-5"></path>
+                    </svg>
+                    <span>签到健康面板</span>
+                </div>
+                <span class="health-status-pill muted" id="checkin-health-badge">加载中</span>
+            </div>
+            <div class="health-grid">
+                <div class="health-metric">
+                    <div class="health-metric-label">账号备份</div>
+                    <div class="health-metric-value" id="health-account-total">-</div>
+                    <div class="health-metric-note" id="health-account-note">等待检测</div>
+                </div>
+                <div class="health-metric">
+                    <div class="health-metric-label">今日成功</div>
+                    <div class="health-metric-value" id="health-today-success">-</div>
+                    <div class="health-metric-note" id="health-today-note">等待历史记录</div>
+                </div>
+                <div class="health-metric">
+                    <div class="health-metric-label">最近执行</div>
+                    <div class="health-metric-value" id="health-last-run">-</div>
+                    <div class="health-metric-note" id="health-last-note">暂无记录</div>
+                </div>
+                <div class="health-metric">
+                    <div class="health-metric-label">定时任务</div>
+                    <div class="health-metric-value" id="health-schedule-state">-</div>
+                    <div class="health-metric-note" id="health-schedule-note">等待检测</div>
+                </div>
+            </div>
+            <div class="balance-threshold-bar">
+                <label for="balance-threshold-input">💰 余额预警阈值</label>
+                <input id="balance-threshold-input" type="number" min="0" step="50" placeholder="500" />
+                <span class="balance-threshold-hint">点（账号剩余额度低于此值时显示黄色低额 / 红色耗尽角标，默认 500）</span>
+            </div>
+            <div class="health-panel">
+                <div class="health-panel-title">
+                    <span>云端同步</span>
+                    <span id="cloud-sync-summary">本地签到节点 → 云端中转站</span>
+                </div>
+                <div style="display:grid; grid-template-columns:minmax(220px, 1fr) minmax(140px, 0.45fr) auto auto auto; gap:10px; align-items:center;" class="cloud-sync-grid">
+                    <input id="cloud-url-input" type="text" value="http://127.0.0.1:8001" style="min-width:0; padding:9px 12px; background:var(--terminal-bg); border:1px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-family:'JetBrains Mono',monospace; font-size:12px;" />
+                    <input id="cloud-password-input" type="password" placeholder="访问密码" style="min-width:0; padding:9px 12px; background:var(--terminal-bg); border:1px solid var(--border-color); border-radius:8px; color:var(--text-primary); font-size:12px;" />
+                    <button class="btn btn-secondary" id="btn-save-current-account" onclick="saveCurrentAccount()">保存当前账号</button>
+                    <button class="btn btn-primary" id="btn-sync-cloud" onclick="syncCloudCredentials()">同步账号凭证</button>
+                    <button class="btn btn-secondary" id="btn-sync-dashboard" onclick="syncDashboardFile()">同步面板文件</button>
+                </div>
+                <div id="cloud-sync-result" class="health-row-sub" style="margin-top:10px;">同步账号凭证后，云端中转站才能读取这些账号的 API 额度；服务器不会执行桌面签到。</div>
+            </div>
+            <div class="health-detail-grid">
+                <div class="health-panel">
+                    <div class="health-panel-title">
+                        <span>账号健康</span>
+                        <span id="health-account-summary">-</span>
+                    </div>
+                    <div class="health-account-list" id="health-account-list">
+                        <div class="empty-state" style="padding:16px 0;">正在加载账号状态...</div>
+                    </div>
+                </div>
+                <div class="health-panel">
+                    <div class="health-panel-title">
+                        <span>最近结果</span>
+                        <span id="health-latest-summary">-</span>
+                    </div>
+                    <div class="health-latest-list" id="health-latest-list">
+                        <div class="empty-state" style="padding:16px 0;">正在加载签到历史...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console Card -->
+        <div class="card console-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 17 10 11 4 5"></polyline>
+                        <line x1="12" y1="19" x2="20" y2="19"></line>
+                    </svg>
+                    <span>自动轮巡签到执行台</span>
+                    <span class="schedule-badge disabled" id="schedule-badge" style="margin-left:8px;">⏰ 加载中...</span>
+                </div>
+                <div class="console-header-actions">
+                    <button class="btn btn-primary" id="btn-run" onclick="runCheckin()">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        一键自动签到
+                    </button>
+                    <button class="btn btn-danger" id="btn-stop" onclick="stopCheckin()" style="display:none; background:var(--error); border-color:var(--error);">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        </svg>
+                        中止自动签到
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearConsole()">清空控制台</button>
+                </div>
+            </div>
+            <div class="console-area" id="console">
+                <div class="console-line line-system">[系统] 控制台准备就绪。点击上面的 "一键自动签到" 按钮开始执行多账号签到流。<span class="cursor"></span></div>
+            </div>
+        </div>
+
+        <!-- Accounts Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span>WeChat 登录会话备份</span>
+                </div>
+                <span class="badge badge-info" id="account-count">0个账号</span>
+            </div>
+            <div class="item-list" id="accounts-list">
+                <div class="empty-state">正在加载账号列表...</div>
+            </div>
+        </div>
+
+        <!-- Channels Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                        <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                        <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                    </svg>
+                    <span>Tencent 渠道额度健康监控</span>
+                </div>
+                <span class="badge badge-info" id="channel-count">0个渠道</span>
+            </div>
+            <div class="item-list" id="channels-list">
+                <div class="empty-state">正在加载渠道列表...</div>
+            </div>
+        </div>
+
+        <!-- Credits Card -->
+        <div class="card full-width-card" id="credits-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                        <line x1="12" y1="4" x2="12" y2="20"></line>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                    </svg>
+                    <span>WorkBuddy 信用点套餐明细</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <button class="btn btn-secondary" onclick="loadCredits()" style="padding:6px 12px; font-size:11px;">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                        刷新
+                    </button>
+                </div>
+            </div>
+            <div id="credits-list" class="credits-container">
+                <div class="empty-state">正在加载信用点套餐明细...</div>
+            </div>
+        </div>
+
+        <!-- Checkin History Card -->
+        <div class="card full-width-card" id="history-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>签到历史记录</span>
+                </div>
+                <span class="badge badge-info" id="history-count">0 条记录</span>
+            </div>
+            <div class="history-timeline" id="history-timeline">
+                <div class="empty-state">正在加载签到历史...</div>
+            </div>
+        </div>
+
+        <!-- Stats Card -->
+        <div class="card full-width-card" id="stats-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    <span>网关用量统计与用户监控</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <button class="btn btn-secondary" onclick="loadStats()" style="padding:6px 12px; font-size:11px;">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                        刷新
+                    </button>
+                </div>
+            </div>
+            <div class="stats-boxes" id="stats-boxes">
+                <div class="stat-box">
+                    <div class="stat-value" id="stat-requests">-</div>
+                    <div class="stat-label">总请求数</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="stat-tokens">-</div>
+                    <div class="stat-label">Tokens 消耗</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="stat-cost">-</div>
+                    <div class="stat-label">估算消费</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="stat-latency">-</div>
+                    <div class="stat-label">平均响应时间</div>
+                </div>
+            </div>
+
+            <!-- CC Switch Style Prompt Caching Stats -->
+            <div class="cache-stats-grid" id="cache-stats-grid">
+                <div class="cache-stat-card">
+                    <div class="cache-stat-val" id="cache-new-input">-</div>
+                    <div class="cache-stat-lbl">新增输入</div>
+                </div>
+                <div class="cache-stat-card">
+                    <div class="cache-stat-val" id="cache-output">-</div>
+                    <div class="cache-stat-lbl">Output</div>
+                </div>
+                <div class="cache-stat-card">
+                    <div class="cache-stat-val" id="cache-created">0</div>
+                    <div class="cache-stat-lbl">创建</div>
+                </div>
+                <div class="cache-stat-card">
+                    <div class="cache-stat-val" id="cache-hit">-</div>
+                    <div class="cache-stat-lbl">命中</div>
+                </div>
+                <div class="cache-stat-card cache-rate-card">
+                    <div class="cache-rate-header">
+                        <span class="cache-stat-lbl">缓存命中率</span>
+                        <span class="cache-rate-val" id="cache-hit-rate">-</span>
+                    </div>
+                    <div class="cache-rate-bar-track">
+                        <div class="cache-rate-bar-fill" id="cache-hit-rate-bar" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-subgrid">
+                <!-- Left Column: Model Usage -->
+                <div class="bar-chart-section" id="model-chart">
+                    <div class="bar-chart-title" style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                        <span>按模型用量分布 (Model Usage)</span>
+                        <span style="font-size:11px; color:var(--text-secondary)">按请求数排序</span>
+                    </div>
+                    <div class="bar-chart" id="model-bars">
+                        <div class="empty-state" style="padding:20px;">加载中...</div>
+                    </div>
+                </div>
+
+                <!-- Right Column: User Quota & Usage Monitor -->
+                <div class="user-monitor-section" id="user-monitor">
+                    <div class="bar-chart-title" style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                        <span>用户额度与用量监控 (User Quota & Usage)</span>
+                        <span style="font-size:11px; color:var(--text-secondary)">按使用额度排序</span>
+                    </div>
+                    <div class="user-table-wrapper">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th style="padding:8px 6px;">用户名</th>
+                                    <th style="padding:8px 6px; text-align:right;">剩余额度</th>
+                                    <th style="padding:8px 6px; text-align:right;">已消耗额度</th>
+                                    <th style="padding:8px 6px; text-align:right;">请求数</th>
+                                    <th style="padding:8px 6px; text-align:right;">Tokens (输入/输出)</th>
+                                    <th style="padding:8px 6px; text-align:right;">平均延迟</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-table-body">
+                                <tr><td colspan="6" class="empty-state" style="text-align:center; padding:20px;">正在加载用户用量信息...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-links">
+        <a href="https://www.codebuddy.cn/profile/plan" target="_blank" class="link-card">
+            <div class="link-info-box">
+                <span>CodeBuddy 官方账单中心</span>
+                <p>购买/升级额度及查看积分明细</p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+        <a href="http://localhost:3000" class="link-card">
+            <div class="link-info-box">
+                <span>New API 网关后台</span>
+                <p>管理渠道负载均衡与API密钥</p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+    </div>
+
+    <script>
+        // DOM Elements
+        const accountsList = document.getElementById('accounts-list');
+        const channelsList = document.getElementById('channels-list');
+        const accountCountBadge = document.getElementById('account-count');
+        const channelCountBadge = document.getElementById('channel-count');
+        const consoleEl = document.getElementById('console');
+        const btnRun = document.getElementById('btn-run');
+        const checkinState = {
+            accounts: [],
+            history: [],
+            schedule: null,
+            credits: []
+        };
+        const isLocalDashboard = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+        const isCloudDashboard = !isLocalDashboard;
+
+        function normalizeName(name) {
+            if (!name) return '';
+            return String(name)
+                .replace(/^Tencent-CodeBuddy-/, '')
+                .replace(/^synced_/, '')
+                .replace(/^account_/, '')
+                .trim();
+        }
+
+        function parseCheckinDate(value) {
+            if (!value) return null;
+            const direct = new Date(value);
+            if (!Number.isNaN(direct.getTime())) return direct;
+            const normalized = String(value).replace(/-/g, '/');
+            const fallback = new Date(normalized);
+            return Number.isNaN(fallback.getTime()) ? null : fallback;
+        }
+
+        function isSameLocalDay(date, now = new Date()) {
+            return date &&
+                date.getFullYear() === now.getFullYear() &&
+                date.getMonth() === now.getMonth() &&
+                date.getDate() === now.getDate();
+        }
+
+        function formatHealthTime(date) {
+            if (!date) return '-';
+            return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function formatHealthDateTime(date) {
+            if (!date) return '暂无记录';
+            return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function getSortedHistory() {
+            return [...checkinState.history]
+                .map(item => ({ ...item, _date: parseCheckinDate(item.timestamp) }))
+                .filter(item => item._date)
+                .sort((a, b) => b._date - a._date);
+        }
+
+        function renderCheckinHealth() {
+            const accountTotal = document.getElementById('health-account-total');
+            if (!accountTotal) return;
+
+            const accounts = checkinState.accounts || [];
+            if (isCloudDashboard) {
+                const credits = checkinState.credits || [];
+                const syncedCredits = credits;
+                // Normalize names to match local/synced accounts properly
+                const creditByName = new Map();
+                credits.forEach(item => {
+                    const normName = normalizeName(item.channel_name);
+                    if (!creditByName.has(normName) || (creditByName.get(normName).error && !item.error)) {
+                        creditByName.set(normName, item);
+                    }
+                });
+                const readableCount = accounts.filter(acc => {
+                    const normAccName = normalizeName(acc.name);
+                    const credit = creditByName.get(normAccName);
+                    return credit && !credit.error && credit.groups;
+                }).length;
+                const latestAccount = [...accounts].sort((a, b) => String(b.last_modified || '').localeCompare(String(a.last_modified || '')))[0] || null;
+
+                // 余额预警统计：每个账号剩余额度，低于阈值计入预警
+                let totalRemainingQuota = 0;
+                const accountBalances = accounts.map(acc => {
+                    const normAccName = normalizeName(acc.name);
+                    const credit = creditByName.get(normAccName);
+                    const groups = credit && credit.groups || {};
+                    const totalLeft = Number((groups.basic || {}).left || 0) + Number((groups.gift || {}).left || 0) + Number((groups.extra || {}).left || 0);
+                    if (credit && !credit.error) {
+                        totalRemainingQuota += totalLeft;
+                    }
+                    const warn = evalBalanceWarning(credit, totalLeft);
+                    return { acc, credit, totalLeft, warn };
+                });
+                const lowBalanceCount = accountBalances.filter(b => b.warn.level === 'warn').length;
+                const dangerCount = accountBalances.filter(b => b.warn.level === 'danger').length;
+
+                accountTotal.textContent = String(accounts.length);
+                document.getElementById('health-account-note').textContent = `${accounts.length} 个云端同步凭证`;
+                document.getElementById('health-today-success').textContent = `${readableCount}/${accounts.length || 0}`;
+                document.getElementById('health-today-note').textContent = accounts.length ? '云端额度接口可读状态' : '还没有同步账号凭证';
+                document.getElementById('health-last-run').textContent = latestAccount ? formatHealthDateTime(parseCheckinDate(latestAccount.last_modified)) : '-';
+                document.getElementById('health-last-note').textContent = latestAccount ? `${latestAccount.name.replace(/^synced_/, '')} 最近同步` : '暂无同步记录';
+                document.getElementById('health-schedule-state').textContent = '只读';
+                document.getElementById('health-schedule-note').textContent = '服务器不执行 Windows 桌面签到';
+
+                const badge = document.getElementById('checkin-health-badge');
+                if (!accounts.length) {
+                    badge.className = 'health-status-pill muted';
+                    badge.textContent = '未同步';
+                } else if (dangerCount > 0) {
+                    // 有账号额度耗尽或读取失败：红色
+                    badge.className = 'health-status-pill fail';
+                    badge.textContent = `⚠️ ${dangerCount} 个额度告急`;
+                } else if (lowBalanceCount > 0) {
+                    // 有账号低于阈值：黄色预警
+                    badge.className = 'health-status-pill warn';
+                    badge.textContent = `⚠️ ${lowBalanceCount} 个低额`;
+                } else if (readableCount >= accounts.length) {
+                    badge.className = 'health-status-pill ok';
+                    badge.textContent = '云端可读';
+                } else {
+                    badge.className = 'health-status-pill wait';
+                    badge.textContent = '待检查';
+                }
+
+                const accountList = document.getElementById('health-account-list');
+                const accountSummary = document.getElementById('health-account-summary');
+                const warnSummaryParts = [];
+                if (lowBalanceCount) warnSummaryParts.push(`${lowBalanceCount} 低额`);
+                if (dangerCount) warnSummaryParts.push(`${dangerCount} 告急`);
+                const warnSummary = warnSummaryParts.length ? ` · ${warnSummaryParts.join('/')}` : '';
+                accountSummary.textContent = accounts.length ? `${readableCount}/${accounts.length} 可读 · 总剩余: ${totalRemainingQuota.toFixed(2)}${warnSummary}` : '-';
+                if (!accounts.length) {
+                    accountList.innerHTML = '<div class="empty-state" style="padding:16px 0;">还没有从本地同步账号凭证</div>';
+                } else {
+                    accountList.innerHTML = accountBalances.map(({ acc, credit, totalLeft, warn }) => {
+                        const cleanName = acc.name.replace(/^synced_/, '');
+                        const displayName = acc.phone ? `${cleanName} (${acc.phone}${acc.nickname && acc.nickname !== acc.phone ? ` - ${acc.nickname}` : ''})` : cleanName;
+                        const leftText = credit && !credit.error ? `${totalLeft.toFixed(2)} 剩余额度${warn.badge}` : '暂无额度结果';
+                        const subText = acc.warning ? `凭证异常` : `凭证 ${Number(acc.db_size_kb || 0).toFixed(1)} KB`;
+                        return `
+                            <div class="health-row">
+                                <div class="health-row-main">
+                                    <div class="health-row-title">${escapeHtml(displayName)}</div>
+                                    <div class="health-row-sub">${subText}</div>
+                                </div>
+                                <div class="health-row-main">
+                                    <div class="health-row-title">${leftText}</div>
+                                    <div class="health-row-sub">上次同步 ${escapeHtml(acc.last_modified || '-')}</div>
+                                </div>
+                                <span class="health-status-pill ${warn.class}">${warn.text}</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                const latestList = document.getElementById('health-latest-list');
+                const latestSummary = document.getElementById('health-latest-summary');
+                latestSummary.textContent = syncedCredits.length ? `${syncedCredits.length} 条额度${warnSummary}` : '-';
+                if (!syncedCredits.length) {
+                    latestList.innerHTML = '<div class="empty-state" style="padding:16px 0;">暂无云端额度读取结果</div>';
+                } else {
+                    latestList.innerHTML = syncedCredits.slice(0, 5).map(item => {
+                        const groups = item.groups || {};
+                        const left = Number((groups.basic || {}).left || 0) + Number((groups.gift || {}).left || 0) + Number((groups.extra || {}).left || 0);
+                        const warn = evalBalanceWarning(item, left);
+                        return `
+                            <div class="health-row" style="grid-template-columns:1fr auto;">
+                                <div class="health-row-main">
+                                    <div class="health-row-title">${escapeHtml(item.channel_name || '未知账号')}</div>
+                                    <div class="health-row-sub">${item.error ? escapeHtml(item.error) : `${left.toFixed(2)} 剩余额度${warn.badge}`}</div>
+                                </div>
+                                <span class="health-status-pill ${warn.class}">${item.error ? '失败' : warn.text}</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                return;
+            }
+
+            const history = getSortedHistory();
+            const now = new Date();
+            const todayItems = history.filter(item => isSameLocalDay(item._date, now));
+            const todaySuccessAccounts = new Set(todayItems.filter(item => item.success).map(item => item.account));
+            const todayFailures = todayItems.filter(item => !item.success).length;
+            const last = history[0] || null;
+            const completeAccounts = accounts.filter(acc => Number(acc.db_size_kb || 0) > 0).length;
+
+            // 本地模式余额预警：依据 checkinState.credits 计算每个账号剩余额度
+            const localCreditByName = new Map();
+            (checkinState.credits || []).forEach(item => {
+                const normName = normalizeName(item.channel_name);
+                if (!localCreditByName.has(normName) || (localCreditByName.get(normName).error && !item.error)) {
+                    localCreditByName.set(normName, item);
+                }
+            });
+            let localLowCount = 0;
+            let localDangerCount = 0;
+            let totalRemainingQuota = 0;
+            accounts.forEach(acc => {
+                const normAccName = normalizeName(acc.name);
+                const credit = localCreditByName.get(normAccName);
+                const groups = credit && credit.groups || {};
+                const totalLeft = Number((groups.basic || {}).left || 0) + Number((groups.gift || {}).left || 0) + Number((groups.extra || {}).left || 0);
+                if (credit && !credit.error) {
+                    totalRemainingQuota += totalLeft;
+                }
+                const w = evalBalanceWarning(credit, totalLeft);
+                if (w.level === 'warn') localLowCount++;
+                if (w.level === 'danger') localDangerCount++;
+            });
+
+            accountTotal.textContent = String(accounts.length);
+            document.getElementById('health-account-note').textContent = `${completeAccounts}/${accounts.length || 0} 个备份可用`;
+            document.getElementById('health-today-success').textContent = `${todaySuccessAccounts.size}/${accounts.length || 0}`;
+            document.getElementById('health-today-note').textContent = todayFailures ? `今日 ${todayFailures} 条失败记录` : '今日暂无失败记录';
+            document.getElementById('health-last-run').textContent = last ? formatHealthTime(last._date) : '-';
+            document.getElementById('health-last-note').textContent = last ? `${last.account || '未知账号'} · ${last.success ? '成功' : '失败'}` : '暂无签到记录';
+
+            const schedule = checkinState.schedule;
+            document.getElementById('health-schedule-state').textContent = schedule ? (schedule.enabled ? '开启' : '关闭') : '-';
+            document.getElementById('health-schedule-note').textContent = schedule
+                ? (schedule.enabled ? `下次 ${schedule.next_run || schedule.time || '待系统返回'}` : '未启用 Windows 定时任务')
+                : '等待检测';
+
+            const badge = document.getElementById('checkin-health-badge');
+            if (!accounts.length) {
+                badge.className = 'health-status-pill muted';
+                badge.textContent = '未配置';
+            } else if (todayFailures > 0) {
+                badge.className = 'health-status-pill fail';
+                badge.textContent = '有失败';
+            } else if (localDangerCount > 0) {
+                badge.className = 'health-status-pill fail';
+                badge.textContent = `⚠️ ${localDangerCount} 个额度告急`;
+            } else if (localLowCount > 0) {
+                badge.className = 'health-status-pill warn';
+                badge.textContent = `⚠️ ${localLowCount} 个低额`;
+            } else if (todaySuccessAccounts.size >= accounts.length) {
+                badge.className = 'health-status-pill ok';
+                badge.textContent = '今日已完成';
+            } else {
+                badge.className = 'health-status-pill wait';
+                badge.textContent = '待签到';
+            }
+
+            const accountList = document.getElementById('health-account-list');
+            const accountSummary = document.getElementById('health-account-summary');
+            const localWarnParts = [];
+            if (localLowCount) localWarnParts.push(`${localLowCount} 低额`);
+            if (localDangerCount) localWarnParts.push(`${localDangerCount} 告急`);
+            const localWarnSummary = localWarnParts.length ? ` · ${localWarnParts.join('/')}` : '';
+            accountSummary.textContent = accounts.length ? `${completeAccounts}/${accounts.length} 可用 · 总剩余: ${totalRemainingQuota.toFixed(2)}${localWarnSummary}` : '-';
+            if (!accounts.length) {
+                accountList.innerHTML = '<div class="empty-state" style="padding:16px 0;">还没有检测到账号备份</div>';
+            } else {
+                accountList.innerHTML = accounts.map(acc => {
+                    const latest = history.find(item => item.account === acc.name);
+                    const latestToday = latest && isSameLocalDay(latest._date, now);
+                    const normAccName = acc.name.replace(/^synced_/, '');
+                    const credit = localCreditByName.get(normAccName);
+                    const groups = credit && credit.groups || {};
+                    const totalLeft = Number((groups.basic || {}).left || 0) + Number((groups.gift || {}).left || 0) + Number((groups.extra || {}).left || 0);
+                    const balWarn = evalBalanceWarning(credit, totalLeft);
+                    const balBadge = credit && !credit.error ? ` · 余额 ${totalLeft.toFixed(0)} 点${balWarn.badge}` : '';
+                    const statusClass = !latest ? 'muted' : latest.success ? (latestToday ? 'ok' : 'wait') : 'fail';
+                    const statusText = !latest ? '无记录' : latest.success ? (latestToday ? '今日成功' : '待今日签到') : '最近失败';
+                    const backupText = Number(acc.db_size_kb || 0) > 0 ? `${Number(acc.db_size_kb).toFixed(1)} KB` : '备份异常';
+
+                    const cleanName = acc.name.replace(/^synced_/, '');
+                    const displayName = acc.phone ? `${cleanName} (${acc.phone}${acc.nickname && acc.nickname !== acc.phone ? ` - ${acc.nickname}` : ''})` : cleanName;
+                    return `
+                        <div class="health-row">
+                            <div class="health-row-main">
+                                <div class="health-row-title">${escapeHtml(displayName)}</div>
+                                <div class="health-row-sub">备份 ${backupText}${balBadge}</div>
+                            </div>
+                            <div class="health-row-main">
+                                <div class="health-row-title">${latest ? formatHealthDateTime(latest._date) : '暂无签到记录'}</div>
+                                <div class="health-row-sub">${latest ? escapeHtml(latest.message || '') : `上次备份 ${escapeHtml(acc.last_modified || '-')}`}</div>
+                            </div>
+                            <span class="health-status-pill ${statusClass}">${statusText}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const latestList = document.getElementById('health-latest-list');
+            const latestSummary = document.getElementById('health-latest-summary');
+            latestSummary.textContent = history.length ? `${history.length} 条` : '-';
+            if (!history.length) {
+                latestList.innerHTML = '<div class="empty-state" style="padding:16px 0;">暂无签到历史</div>';
+            } else {
+                latestList.innerHTML = history.slice(0, 5).map(item => `
+                    <div class="health-row" style="grid-template-columns:1fr auto;">
+                        <div class="health-row-main">
+                            <div class="health-row-title">${escapeHtml(item.account || '未知账号')}</div>
+                            <div class="health-row-sub">${formatHealthDateTime(item._date)} · ${escapeHtml(item.message || '')}</div>
+                        </div>
+                        <span class="health-status-pill ${item.success ? 'ok' : 'fail'}">${item.success ? '成功' : '失败'}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Fetch accounts and channels list on load
+        window.addEventListener('DOMContentLoaded', () => {
+            // 保存当前账号按钮默认一直显示，防止由于主机名解析（如公网IP访问本地代理）导致按钮被误隐藏
+
+            // 余额预警阈值：从 localStorage 读取，回退默认 500
+            const thresholdInput = document.getElementById('balance-threshold-input');
+            if (thresholdInput) {
+                thresholdInput.value = getBalanceThreshold();
+                thresholdInput.addEventListener('change', () => {
+                    const v = Math.max(0, Number(thresholdInput.value) || 0);
+                    localStorage.setItem('wechat_balance_threshold', String(v));
+                    thresholdInput.value = v;
+                    renderCheckinHealth();
+                });
+                thresholdInput.addEventListener('input', () => {
+                    // 实时预览（不落盘，change 时才保存）
+                    renderCheckinHealth();
+                });
+            }
+
+            loadAccounts();
+            loadChannels();
+            loadCredits();
+            loadStats();
+            loadCheckinHistory();
+            loadScheduleStatus();
+
+            // Auto-refresh stats every 30 seconds
+            setInterval(loadStats, 30000);
+            // Auto-refresh credits every 60 seconds
+            setInterval(loadCredits, 60000);
+        });
+
+        // 余额预警阈值读取：localStorage 优先，否则默认 500
+        function getBalanceThreshold() {
+            const stored = Number(localStorage.getItem('wechat_balance_threshold'));
+            if (!isNaN(stored) && stored > 0) return stored;
+            return 500;
+        }
+
+        // 余额预警判定：返回 { class, text, badge, level }
+        //   读取失败 -> fail / 额度失败
+        //   totalLeft <= 0 -> danger / 额度耗尽
+        //   totalLeft < threshold -> warn / 低额预警
+        //   其它 -> ok / 额度充足
+        function evalBalanceWarning(credit, totalLeft) {
+            const threshold = getBalanceThreshold();
+            if (!credit || credit.error) {
+                return { class: 'fail', text: '额度失败', badge: '', level: 'danger' };
+            }
+            if (totalLeft <= 0) {
+                return { class: 'danger', text: '额度耗尽', badge: '<span class="balance-badge danger">尽</span>', level: 'danger' };
+            }
+            if (totalLeft < threshold) {
+                return { class: 'warn', text: '低额预警', badge: '<span class="balance-badge warn">低</span>', level: 'warn' };
+            }
+            return { class: 'ok', text: '额度充足', badge: '', level: 'ok' };
+        }
+
+        // 1. Load Backup Accounts
+        async function loadAccounts() {
+            try {
+                const response = await fetch('/api/checkin/accounts');
+                const accounts = await response.json();
+                
+                if (accounts.error) {
+                    accountsList.innerHTML = `<div class="empty-state style="color:var(--error)">加载账号出错: ${accounts.error}</div>`;
+                    checkinState.accounts = [];
+                    renderCheckinHealth();
+                    return;
+                }
+
+                checkinState.accounts = Array.isArray(accounts) ? accounts : [];
+                renderCheckinHealth();
+                renderCredits();
+                
+                accountCountBadge.textContent = `${accounts.length}个账号`;
+                
+                if (accounts.length === 0) {
+                    accountsList.innerHTML = `<div class="empty-state">暂无微信登录会话备份。<br>请按照 USAGE.md 在 accounts/ 下添加账号目录。</div>`;
+                    return;
+                }
+                
+                accountsList.innerHTML = '';
+                accounts.forEach(acc => {
+                    const cleanName = acc.name.replace(/^synced_/, '');
+                    const displayName = acc.phone ? `${cleanName} (${acc.phone}${acc.nickname && acc.nickname !== acc.phone ? ` - ${acc.nickname}` : ''})` : cleanName;
+                    const row = document.createElement('div');
+                    row.className = 'item-row';
+                    row.innerHTML = `
+                        <div class="item-info">
+                            <div class="item-avatar">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            </div>
+                            <div class="item-meta">
+                                <h3>${escapeHtml(displayName)}</h3>
+                                <p>数据库大小: ${(acc.db_size_kb).toFixed(1)} KB</p>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-info" style="font-size:11px">上次备份: ${acc.last_modified}</span>
+                        </div>
+                    `;
+                    accountsList.appendChild(row);
+                });
+            } catch (err) {
+                accountsList.innerHTML = `<div class="empty-state" style="color:var(--error)">加载账号发生异常.</div>`;
+                checkinState.accounts = [];
+                renderCheckinHealth();
+            }
+        }
+
+        // 2. Load New API Channels
+        async function loadChannels() {
+            try {
+                const response = await fetch('/api/checkin/channels');
+                const channels = await response.json();
+                
+                if (channels.error) {
+                    channelsList.innerHTML = `<div class="empty-state" style="color:var(--error)">加载渠道出错: ${channels.error}</div>`;
+                    return;
+                }
+                
+                channelCountBadge.textContent = `${channels.length}个渠道`;
+                
+                if (channels.length === 0) {
+                    if (isCloudDashboard) {
+                        channelCountBadge.textContent = '云端不读取';
+                        channelsList.innerHTML = `<div class="empty-state">服务器端没有部署 New API 面板。这里是 CodeBuddy2API 云端中转站，只读取已同步账号凭证和额度。</div>`;
+                    } else {
+                        channelsList.innerHTML = `<div class="empty-state">New API 中未检测到 Tencent 相关的 API Key 渠道。</div>`;
+                    }
+                    return;
+                }
+                
+                channelsList.innerHTML = '';
+                channels.forEach(ch => {
+                    const row = document.createElement('div');
+                    row.className = 'item-row';
+                    row.id = `channel-row-${ch.id}`;
+                    row.innerHTML = `
+                        <div class="item-info">
+                            <div class="item-avatar" style="background: rgba(71, 163, 255, 0.08)">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                            </div>
+                            <div class="item-meta">
+                                <h3 style="display:flex; align-items:center; gap:6px;">${ch.name} <span style="font-size:10px; color:var(--text-secondary); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">ID: ${ch.id}</span></h3>
+                                <p style="font-family:'JetBrains Mono', monospace; font-size:11px;">${ch.key_masked}</p>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <span class="status-badge status-checking" id="status-badge-${ch.id}">等待检测</span>
+                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size:11px;" onclick="testChannel(${ch.id}, '${ch.key}')">检测额度</button>
+                        </div>
+                    `;
+                    channelsList.appendChild(row);
+                });
+                
+                // Automatically trigger test for all channels on load
+                channels.forEach(ch => {
+                    testChannel(ch.id, ch.key);
+                });
+            } catch (err) {
+                channelsList.innerHTML = `<div class="empty-state" style="color:var(--error)">加载渠道发生异常.</div>`;
+            }
+        }
+
+        // ============================================
+        // 一键整合：OAuth 登录 / 粘贴 key
+        // ============================================
+        // 方式一：导入本地已登录账号并同步
+        async function importLocalAccount() {
+            const btn = document.getElementById('btn-import-local');
+            const hint = document.getElementById('oauth-hint');
+            const statusBadge = document.getElementById('integrate-status');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner" style="display:inline-block; width:12px; height:12px; border:2px solid; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; margin-right:6px; vertical-align:middle;"></span> 正在导入本地账号...';
+            hint.textContent = '正在检测并读取本地 WorkBuddy 登录态...';
+            hint.style.color = 'var(--text-secondary)';
+            statusBadge.textContent = '导入中';
+            statusBadge.className = 'badge badge-info';
+
+            try {
+                const resp = await fetch('/api/checkin/import-local-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await resp.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error || '导入本地账号失败');
+                }
+
+                // 构造成功信息
+                let msg = `✅ 导入成功! 账号: ${data.nickname || data.account}`;
+                if (data.integrated && data.integrated.ok) {
+                    msg += ` | 号池: ${data.integrated.action === 'created' ? '已新建渠道' : '已更新渠道'} ${data.integrated.name}`;
+                }
+                if (data.synced) {
+                    if (data.synced.ok) {
+                        msg += ` | 云端: 已同步`;
+                    } else {
+                        msg += ` | 云端: 同步失败 (${data.synced.error || '原因未知'})`;
+                    }
+                }
+
+                hint.textContent = msg;
+                hint.style.color = 'var(--success)';
+                statusBadge.textContent = '成功';
+                statusBadge.className = 'badge';
+                statusBadge.style.color = 'var(--success)';
+
+                // 刷新界面
+                loadAccounts();
+                loadChannels();
+                loadCredits();
+            } catch (e) {
+                hint.textContent = '❌ ' + e.message;
+                hint.style.color = 'var(--error)';
+                statusBadge.textContent = '失败';
+                statusBadge.className = 'badge';
+                statusBadge.style.color = 'var(--error)';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg> 导入本地已登录账号并同步`;
+            }
+        }
+
+        // 方式二：粘贴 key 整合
+        async function addKeyChannel() {
+            const input = document.getElementById('key-input');
+            const result = document.getElementById('key-result');
+            const statusBadge = document.getElementById('integrate-status');
+            const key = (input.value || '').trim();
+
+            if (!key) {
+                result.textContent = '请输入 ck_ 开头的 key';
+                result.style.color = 'var(--error)';
+                return;
+            }
+            if (!key.startsWith('ck_')) {
+                result.textContent = 'key 必须以 ck_ 开头';
+                result.style.color = 'var(--error)';
+                return;
+            }
+
+            result.textContent = '整合中...';
+            result.style.color = 'var(--warning)';
+            statusBadge.textContent = '整合中';
+            statusBadge.className = 'badge badge-info';
+
+            try {
+                const resp = await fetch('/api/channels/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key })
+                });
+                const data = await resp.json();
+
+                if (data.ok) {
+                    const verb = data.action === 'created' ? '✅ 已新建渠道' : '✅ 已更新渠道（去重）';
+                    result.textContent = `${verb}：${data.name} (ID:${data.channel_id})`;
+                    result.style.color = 'var(--success)';
+                    statusBadge.textContent = '整合成功';
+                    statusBadge.className = 'badge';
+                    statusBadge.style.color = 'var(--success)';
+                    input.value = '';
+                    loadChannels();
+                    loadCredits();
+                } else {
+                    result.textContent = '❌ ' + (data.error || '整合失败');
+                    result.style.color = 'var(--error)';
+                    statusBadge.textContent = '失败';
+                    statusBadge.className = 'badge';
+                    statusBadge.style.color = 'var(--error)';
+                }
+            } catch (e) {
+                result.textContent = '❌ ' + e.message;
+                result.style.color = 'var(--error)';
+                statusBadge.textContent = '失败';
+                statusBadge.className = 'badge';
+                statusBadge.style.color = 'var(--error)';
+            }
+        }
+
+        // 回车提交 key
+        document.addEventListener('DOMContentLoaded', () => {
+            const ki = document.getElementById('key-input');
+            if (ki) ki.addEventListener('keydown', (e) => { if (e.key === 'Enter') addKeyChannel(); });
+        });
+
+        // 3. Test Channel Credit Status
+        async function testChannel(id, key) {
+            const badge = document.getElementById(`status-badge-${id}`);
+            if (!badge) return;
+            
+            badge.className = 'status-badge status-checking';
+            badge.textContent = '检测中...';
+            
+            try {
+                const response = await fetch('/api/checkin/test-channel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key })
+                });
+                const result = await response.json();
+                
+                if (result.status === 'active') {
+                    badge.className = 'status-badge status-active';
+                    badge.innerHTML = `
+                        <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" style="vertical-align:middle"><circle cx="12" cy="12" r="10"></circle></svg>
+                        额度充足
+                    `;
+                } else if (result.status === 'exhausted') {
+                    badge.className = 'status-badge status-exhausted';
+                    badge.innerHTML = `
+                        <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" style="vertical-align:middle"><circle cx="12" cy="12" r="10"></circle></svg>
+                        额度耗尽
+                    `;
+                } else {
+                    badge.className = 'status-badge status-error';
+                    badge.textContent = '请求失败';
+                }
+            } catch (err) {
+                badge.className = 'status-badge status-error';
+                badge.textContent = '网络错误';
+            }
+        }
+
+        // 4. Run Check-in Script and Stream Output
+        async function runCheckin() {
+            const btnStop = document.getElementById('btn-stop');
+            btnRun.disabled = true;
+            btnRun.style.display = 'none';
+            if (btnStop) {
+                btnStop.style.display = 'inline-block';
+                btnStop.disabled = false;
+            }
+            
+            appendConsoleLine('[系统] 开始启动微信多账户轮巡自动签到流程...', 'info');
+            appendConsoleLine('[系统] 请勿最小化或锁定电脑屏幕，保持微信窗口可交互...', 'warning');
+            
+            try {
+                const response = await fetch('/api/checkin/run', { method: 'POST' });
+                if (!response.ok) {
+                    appendConsoleLine(`[错误] 服务端返回异常状态: ${response.status}`, 'error');
+                    return;
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let accumulated = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    accumulated += chunk;
+                    
+                    // Split by newlines and print
+                    const lines = accumulated.split('\n');
+                    accumulated = lines.pop(); // keep last incomplete line
+                    
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed) continue;
+                        
+                        let styleClass = '';
+                        if (trimmed.includes('[Error]') || trimmed.includes('[System Error]')) {
+                            styleClass = 'error';
+                        } else if (trimmed.includes('[Success]')) {
+                            styleClass = 'success';
+                        } else if (trimmed.includes('[Warning]')) {
+                            styleClass = 'warning';
+                        } else if (trimmed.includes('[Info]') || trimmed.includes('[Restore]') || trimmed.includes('[Backup]') || trimmed.includes('[UI]') || trimmed.includes('[Process]')) {
+                            styleClass = 'info';
+                        }
+                        
+                        appendConsoleLine(trimmed, styleClass);
+                    }
+                }
+                
+                if (accumulated.trim()) {
+                    appendConsoleLine(accumulated.trim());
+                }
+                
+                appendConsoleLine('[系统] 签到流程执行完毕，已释放系统资源。', 'success');
+                
+                // Reload accounts list and channels status
+                loadAccounts();
+                loadChannels();
+                loadCheckinHistory();
+                loadScheduleStatus();
+            } catch (err) {
+                appendConsoleLine(`[致命错误] 执行签到流发生异常: ${err.message}`, 'error');
+            } finally {
+                btnRun.disabled = false;
+                btnRun.style.display = 'inline-block';
+                if (btnStop) {
+                    btnStop.style.display = 'none';
+                }
+            }
+        }
+
+        async function stopCheckin() {
+            const btnStop = document.getElementById('btn-stop');
+            if (btnStop) btnStop.disabled = true;
+            appendConsoleLine('[系统] 正在向本地代理发送中断指令，强行终止运行中的签到脚本及关联窗口进程...', 'warning');
+            try {
+                const response = await fetch('/api/checkin/stop', { method: 'POST' });
+                const res = await response.json();
+                if (res.ok) {
+                    appendConsoleLine('[系统] 中断指令发送成功。自动签到已强行中止，相关残留进程已清理。', 'success');
+                } else {
+                    appendConsoleLine(`[系统] 中断指令发送可能未全部成功: ${res.error || '未知原因'}`, 'warning');
+                }
+            } catch (err) {
+                appendConsoleLine(`[错误] 发送中止请求失败: ${err.message}`, 'error');
+            } finally {
+                if (btnStop) btnStop.disabled = false;
+                // 重新加载状态，以防已被部分修改的账号状态更新
+                loadAccounts();
+                loadChannels();
+                loadCheckinHistory();
+            }
+        }
+
+        // Helpers
+        function appendConsoleLine(text, styleClass = '') {
+            // Remove cursor first
+            const cursor = consoleEl.querySelector('.cursor');
+            if (cursor) cursor.remove();
+            
+            const line = document.createElement('div');
+            line.className = `console-line ${styleClass ? 'line-' + styleClass : ''}`;
+            line.textContent = text;
+            consoleEl.appendChild(line);
+            
+            // Re-append cursor
+            const newCursor = document.createElement('span');
+            newCursor.className = 'cursor';
+            consoleEl.appendChild(newCursor);
+            
+            // Scroll to bottom
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleEl.innerHTML = '<div class="console-line line-system">[系统] 控制台已清空。<span class="cursor"></span></div>';
+        }
+
+        function getCloudSyncPayload() {
+            return {
+                cloud_url: document.getElementById('cloud-url-input')?.value.trim(),
+                password: document.getElementById('cloud-password-input')?.value.trim()
+            };
+        }
+
+        function setCloudSyncResult(message, kind = 'info') {
+            const el = document.getElementById('cloud-sync-result');
+            if (!el) return;
+            const colorMap = {
+                success: 'var(--success)',
+                error: 'var(--error)',
+                warning: 'var(--warning)',
+                info: 'var(--text-secondary)'
+            };
+            el.style.color = colorMap[kind] || colorMap.info;
+            el.textContent = message;
+        }
+
+        async function saveCurrentAccount() {
+            const btn = document.getElementById('btn-save-current-account');
+            const summary = document.getElementById('cloud-sync-summary');
+            btn.disabled = true;
+            setCloudSyncResult('正在把当前 WorkBuddy 登录态保存到本地账号池...', 'info');
+            if (summary) summary.textContent = '保存当前账号中';
+
+            try {
+                const response = await fetch('/api/checkin/save-current-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                if (!response.ok || !data.ok) {
+                    setCloudSyncResult(`保存当前账号失败: ${data.error || response.status}`, 'error');
+                    if (summary) summary.textContent = '保存失败';
+                    return;
+                }
+
+                const warningText = data.warnings && data.warnings.length ? `，提示：${data.warnings.join('；')}` : '';
+                setCloudSyncResult(`已保存为 ${data.account}${warningText}`, data.warnings && data.warnings.length ? 'warning' : 'success');
+                if (summary) summary.textContent = `已保存 ${data.account}`;
+                await loadAccounts();
+                loadCredits();
+            } catch (err) {
+                setCloudSyncResult(`保存当前账号失败: ${err.message}`, 'error');
+                if (summary) summary.textContent = '保存失败';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function syncCloudCredentials() {
+            const btn = document.getElementById('btn-sync-cloud');
+            const summary = document.getElementById('cloud-sync-summary');
+            btn.disabled = true;
+            setCloudSyncResult('正在同步本地账号凭证到云端...', 'info');
+            if (summary) summary.textContent = '同步中';
+
+            try {
+                const response = await fetch('/api/checkin/sync-cloud-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(getCloudSyncPayload())
+                });
+                const data = await response.json();
+                if (!response.ok || !data.ok) {
+                    const failed = (data.results || []).filter(item => !item.ok);
+                    const msg = failed.length
+                        ? failed.map(item => `${item.account}: ${item.error || item.message || item.status}`).join('；')
+                        : (data.error || '同步失败');
+                    setCloudSyncResult(msg, 'error');
+                    if (summary) summary.textContent = `${data.success || 0}/${data.total || 0} 成功`;
+                    return;
+                }
+
+                setCloudSyncResult(`已同步 ${data.success}/${data.total} 个账号到 ${data.cloud_url}`, 'success');
+                if (summary) summary.textContent = `${data.success}/${data.total} 成功`;
+                loadCredits();
+            } catch (err) {
+                setCloudSyncResult(`同步账号凭证失败: ${err.message}`, 'error');
+                if (summary) summary.textContent = '同步失败';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function syncDashboardFile() {
+            const btn = document.getElementById('btn-sync-dashboard');
+            btn.disabled = true;
+            setCloudSyncResult('正在同步当前 dashboard.html 到服务器...', 'info');
+
+            try {
+                const response = await fetch('/api/checkin/sync-dashboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                if (!response.ok || !data.ok) {
+                    setCloudSyncResult(`同步面板文件失败: ${data.error || response.status}`, 'error');
+                    return;
+                }
+                setCloudSyncResult(`面板文件已同步到 ${data.remote}`, 'success');
+            } catch (err) {
+                setCloudSyncResult(`同步面板文件失败: ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // 5. Load API Stats
+        // Helper function to format token count beautifully (K/M shorthand)
+        function formatTokens(n) {
+            if (n == null || isNaN(n)) return '0';
+            if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+            return n.toString();
+        }
+
+        // Helper function to format token count using Chinese "万" shorthand (matches CC switch)
+        function formatTokensCn(n) {
+            if (n == null || isNaN(n)) return '0';
+            if (n >= 10000) return (n / 10000).toFixed(1) + ' 万';
+            return n.toString();
+        }
+
+        // 5. Load API Stats
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/checkin/stats');
+                const data = await response.json();
+
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // 1. Calculate success rate and uptime
+                const globalData = data.global || { total_requests: 0, prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, total_quota: 0, avg_response_ms: 0 };
+                const totalAttempts = globalData.total_requests + (data.total_errors || 0);
+                const successRate = totalAttempts > 0
+                    ? ((globalData.total_requests / totalAttempts) * 100).toFixed(1)
+                    : '100.0';
+
+                const uptimeH = Math.floor((data.uptime_seconds || 0) / 3600);
+                const uptimeM = Math.floor(((data.uptime_seconds || 0) % 3600) / 60);
+                const uptimeStr = `${uptimeH}h ${uptimeM}m`;
+
+                const avgMs = globalData.avg_response_ms != null ? Math.round(globalData.avg_response_ms) : '-';
+                const costUsd = (globalData.total_quota / 500000).toFixed(3);
+
+                // 2. Render Metric Boxes
+                const requestsEl = document.getElementById('stat-requests');
+                const tokensEl = document.getElementById('stat-tokens');
+                const costEl = document.getElementById('stat-cost');
+                const latencyEl = document.getElementById('stat-latency');
+
+                if (requestsEl) {
+                    requestsEl.innerHTML = `
+                        ${globalData.total_requests.toLocaleString()}
+                        <div style="font-size:11px;font-weight:400;color:var(--text-secondary);margin-top:4px;">
+                            成功率: <span style="color:var(--success);font-weight:600;">${successRate}%</span>
+                        </div>
+                    `;
+                }
+                if (tokensEl) {
+                    tokensEl.innerHTML = `
+                        ${formatTokens(globalData.total_tokens)}
+                        <div style="font-size:11px;font-weight:400;color:var(--text-secondary);margin-top:4px;">
+                            ${formatTokens(globalData.prompt_tokens)} 入 / ${formatTokens(globalData.completion_tokens)} 出
+                        </div>
+                    `;
+                }
+                if (costEl) {
+                    costEl.innerHTML = `
+                        $${costUsd}
+                        <div style="font-size:11px;font-weight:400;color:var(--text-secondary);margin-top:4px;">
+                            ${globalData.total_quota.toLocaleString()} 额度
+                        </div>
+                    `;
+                }
+                if (latencyEl) {
+                    latencyEl.innerHTML = `
+                        ${avgMs}<span style="font-size:14px;font-weight:400;color:var(--text-secondary)">ms</span>
+                        <div style="font-size:11px;font-weight:400;color:var(--text-secondary);margin-top:4px;">
+                            在线时长: ${uptimeStr}
+                        </div>
+                    `;
+                }
+
+                // Render Cache Stat Cards
+                const cacheTokens = globalData.cache_tokens || 0;
+                const promptTokens = globalData.prompt_tokens || 0;
+                const completionTokens = globalData.completion_tokens || 0;
+                const newInput = Math.max(0, promptTokens - cacheTokens);
+                
+                const hitRateVal = promptTokens > 0 ? (cacheTokens / promptTokens * 100).toFixed(1) : '0.0';
+                
+                const newInputEl = document.getElementById('cache-new-input');
+                const outputEl = document.getElementById('cache-output');
+                const hitEl = document.getElementById('cache-hit');
+                const hitRateEl = document.getElementById('cache-hit-rate');
+                const hitRateBarEl = document.getElementById('cache-hit-rate-bar');
+                
+                if (newInputEl) newInputEl.textContent = formatTokensCn(newInput);
+                if (outputEl) outputEl.textContent = formatTokensCn(completionTokens);
+                if (hitEl) hitEl.textContent = formatTokensCn(cacheTokens);
+                if (hitRateEl) hitRateEl.textContent = `${hitRateVal}%`;
+                if (hitRateBarEl) hitRateBarEl.style.width = `${hitRateVal}%`;
+
+                // 3. Render Model Bar Chart (Left Column)
+                const barsEl = document.getElementById('model-bars');
+                const byModel = data.by_model || {};
+                const modelKeys = Object.keys(byModel);
+
+                if (modelKeys.length === 0) {
+                    barsEl.innerHTML = '<div class="empty-state" style="padding:16px;">暂无模型请求数据</div>';
+                } else {
+                    const maxRequests = Math.max(...modelKeys.map(k => byModel[k].requests), 1);
+                    barsEl.innerHTML = modelKeys
+                        .sort((a, b) => byModel[b].requests - byModel[a].requests)
+                        .map(model => {
+                            const requests = byModel[model].requests;
+                            const promptTokens = byModel[model].prompt_tokens;
+                            const completionTokens = byModel[model].completion_tokens;
+                            const cacheTokens = byModel[model].cache_tokens || 0;
+                            const totalTokens = promptTokens + completionTokens + cacheTokens;
+                            const pct = (requests / maxRequests) * 100;
+                            return `
+                                <div class="bar-row">
+                                    <div class="bar-label" title="${model}">${model}</div>
+                                    <div class="bar-track">
+                                        <div class="bar-fill" style="width:${Math.max(pct, 3)}%">
+                                            <span>${requests}次 | ${formatTokens(totalTokens)} Toks</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                }
+
+                // 4. Render Per-User Usage Monitor (Right Column)
+                const userTableBody = document.getElementById('user-table-body');
+                const users = data.users || [];
+
+                if (users.length === 0) {
+                    userTableBody.innerHTML = '<tr><td colspan="6" class="empty-state" style="text-align:center; padding:20px;">暂无用户数据</td></tr>';
+                } else {
+                    userTableBody.innerHTML = users.map(u => {
+                        const remUsd = u.remaining_quota / 500000;
+                        const usedUsd = u.used_quota / 500000;
+                        
+                        let badgeClass = 'user-badge-green';
+                        if (remUsd < 2) badgeClass = 'user-badge-red';
+                        else if (remUsd < 10) badgeClass = 'user-badge-orange';
+                        
+                        return `
+                            <tr>
+                                <td>
+                                    <div style="font-weight:600;color:var(--text-primary);">${u.display_name}</div>
+                                    <div style="font-size:10px;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">@${u.username}</div>
+                                </td>
+                                <td style="text-align:right;">
+                                    <span class="user-badge ${badgeClass}">$${remUsd.toFixed(2)}</span>
+                                </td>
+                                <td style="text-align:right;color:var(--text-primary);">$${usedUsd.toFixed(4)}</td>
+                                <td style="text-align:right;color:var(--text-secondary);">${u.log_requests}次</td>
+                                <td style="text-align:right;">
+                                    <div style="color:var(--text-primary);font-weight:600;">${formatTokens(u.total_tokens)}</div>
+                                    <div style="font-size:9px;color:var(--text-secondary);">${formatTokens(u.prompt_tokens)} / ${formatTokens(u.completion_tokens)}</div>
+                                </td>
+                                <td style="text-align:right;color:var(--text-secondary);">${u.avg_latency > 0 ? u.avg_latency + 's' : '-'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error("loadStats error:", err);
+                const boxesEl = document.getElementById('stats-boxes');
+                if (boxesEl) {
+                    boxesEl.innerHTML = '<div class="stat-box" style="grid-column:span 4;text-align:center;color:var(--text-secondary)">统计数据加载失败</div>';
+                }
+                const userTableBody = document.getElementById('user-table-body');
+                if (userTableBody) {
+                    userTableBody.innerHTML = `<tr><td colspan="6" class="empty-state" style="text-align:center;color:var(--error);padding:20px;">数据加载失败: ${err.message}</td></tr>`;
+                }
+            }
+        }
+
+        // 6. Load Checkin History
+        async function loadCheckinHistory() {
+            const timelineEl = document.getElementById('history-timeline');
+            const countBadge = document.getElementById('history-count');
+            try {
+                const response = await fetch('/api/checkin/history');
+                const history = await response.json();
+                checkinState.history = Array.isArray(history) ? history : [];
+                renderCheckinHealth();
+
+                countBadge.textContent = `${history.length} 条记录`;
+
+                if (!history || history.length === 0) {
+                    timelineEl.innerHTML = '<div class="empty-state">暂无签到记录</div>';
+                    return;
+                }
+
+                // Reverse chronological
+                const sorted = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                timelineEl.innerHTML = sorted.map((item, i) => {
+                    const dt = new Date(item.timestamp);
+                    const dateStr = dt.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+                    const timeStr = dt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const dotClass = item.success ? 'success' : 'fail';
+                    return `
+                        <div class="timeline-item animate-in" style="animation-delay:${i * 0.03}s">
+                            <div class="timeline-dot-col">
+                                <div class="timeline-dot ${dotClass}"></div>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="tl-msg">${escapeHtml(item.message || (item.success ? '签到成功' : '签到失败'))}</div>
+                                <div class="tl-meta">
+                                    <span>${dateStr} ${timeStr}</span>
+                                    <span>${escapeHtml(item.account || '')}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                timelineEl.innerHTML = '<div class="empty-state" style="color:var(--error)">加载签到历史失败</div>';
+                checkinState.history = [];
+                renderCheckinHealth();
+            }
+        }
+
+        // 7. Load Schedule Status
+        async function loadScheduleStatus() {
+            const badge = document.getElementById('schedule-badge');
+            try {
+                const response = await fetch('/api/checkin/schedule');
+                const data = await response.json();
+                checkinState.schedule = data;
+                renderCheckinHealth();
+
+                if (data.enabled) {
+                    badge.className = 'schedule-badge enabled';
+                    badge.textContent = `⏰ 定时 ${data.time || '08:00'}`;
+                } else {
+                    badge.className = 'schedule-badge disabled';
+                    badge.textContent = '⏰ 未启用';
+                }
+            } catch (err) {
+                badge.className = 'schedule-badge disabled';
+                badge.textContent = '⏰ 未知';
+                checkinState.schedule = { enabled: false };
+                renderCheckinHealth();
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function getAccountDisplayName(channelName) {
+            if (!channelName) return '未知账号';
+            const normName = normalizeName(channelName);
+            const accounts = checkinState.accounts || [];
+            const acc = accounts.find(a => normalizeName(a.name) === normName);
+            if (acc) {
+                const cleanName = acc.name.replace(/^synced_/, '');
+                return acc.phone ? `${cleanName} (${acc.phone}${acc.nickname && acc.nickname !== acc.phone ? ` - ${acc.nickname}` : ''})` : cleanName;
+            }
+            return channelName;
+        }
+
+        // 8. Load WorkBuddy Credits Detail
+        // 8. Load WorkBuddy Credits Detail
+        async function loadCredits() {
+            try {
+                const response = await fetch('/api/checkin/credits');
+                const channels = await response.json();
+                checkinState.credits = Array.isArray(channels) ? channels : [];
+                renderCheckinHealth();
+                renderCredits();
+            } catch (err) {
+                console.error("loadCredits error:", err);
+                const listEl = document.getElementById('credits-list');
+                if (listEl) {
+                    listEl.innerHTML = `<div class="empty-state" style="color:var(--error)">加载信用额度明细失败: ${escapeHtml(err.message)}</div>`;
+                }
+            }
+        }
+
+        function renderCredits() {
+            const listEl = document.getElementById('credits-list');
+            if (!listEl) return;
+            const channels = checkinState.credits || [];
+            if (channels.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">未检测到带有 WorkBuddy (ck_) 凭据的活跃渠道。</div>';
+                return;
+            }
+
+            listEl.innerHTML = channels.map((chan, idx) => {
+                if (chan.error) {
+                    return `
+                        <div class="channel-credits-card">
+                            <div class="channel-credits-title">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                <span>${escapeHtml(getAccountDisplayName(chan.channel_name))}</span>
+                            </div>
+                            <div class="empty-state" style="color:var(--error); padding:10px 0;">
+                                获取信用额度失败: ${escapeHtml(chan.error)}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const groups = chan.groups || { basic: {}, gift: {}, extra: {} };
+                
+                // Helper to get pct
+                const getBarPct = (used, total) => {
+                    if (total <= 0) return 0;
+                    return Math.min(100, Math.max(0, (used / total) * 100));
+                };
+
+                // 1. Basic package
+                const basic = groups.basic || { total: 0, left: 0, used: 0, refresh_time: "无" };
+                const basicPct = getBarPct(basic.used, basic.total);
+
+                // 2. Gift package
+                const gift = groups.gift || { total: 0, left: 0, used: 0, packages: [] };
+                const giftPct = getBarPct(gift.used, gift.total);
+
+                // 3. Extra package
+                const extra = groups.extra || { total: 0, left: 0, used: 0, packages: [] };
+                const extraPct = getBarPct(extra.used, extra.total);
+
+                // Render gift packages detail rows
+                let giftSubHtml = '';
+                if (gift.packages && gift.packages.length > 0) {
+                    giftSubHtml = `
+                        <div class="credits-sub-list" id="gift-details-${chan.channel_id}" style="display:none;">
+                            ${gift.packages.map(p => `
+                                <div class="credits-sub-item animate-in">
+                                    <div>
+                                        <div class="credits-sub-name">${escapeHtml(p.name)}</div>
+                                        <div class="credits-sub-expire">到期失效: ${escapeHtml(p.expire_time)}</div>
+                                    </div>
+                                    <div class="credits-sub-values">${p.left.toFixed(2)} / ${p.total.toFixed(0)} 剩余</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    giftSubHtml = `<div class="credits-sub-list" id="gift-details-${chan.channel_id}" style="display:none; color:var(--text-secondary); font-size:11px; padding:6px 8px;">暂无具体活动赠送包明细</div>`;
+                }
+
+                // Render extra packages detail rows
+                let extraSubHtml = '';
+                if (extra.packages && extra.packages.length > 0) {
+                    extraSubHtml = `
+                        <div class="credits-sub-list" id="extra-details-${chan.channel_id}" style="display:none;">
+                            ${extra.packages.map(p => `
+                                <div class="credits-sub-item animate-in">
+                                    <div>
+                                        <div class="credits-sub-name">${escapeHtml(p.name)}</div>
+                                        <div class="credits-sub-expire">到期失效: ${escapeHtml(p.expire_time)}</div>
+                                    </div>
+                                    <div class="credits-sub-values">${p.left.toFixed(2)} / ${p.total.toFixed(0)} 剩余</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    extraSubHtml = `<div class="credits-sub-list" id="extra-details-${chan.channel_id}" style="display:none; color:var(--text-secondary); font-size:11px; padding:6px 8px;">暂无具体加量包明细</div>`;
+                }
+
+                return `
+                    <div class="channel-credits-card animate-in" style="animation-delay:${idx * 0.05}s">
+                        <div class="channel-credits-title">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            <span>${escapeHtml(getAccountDisplayName(chan.channel_name))} (${chan.key_masked})</span>
+                            ${(() => {
+                                const totalLeft = Number(basic.left || 0) + Number(gift.left || 0) + Number(extra.left || 0);
+                                const w = evalBalanceWarning(chan, totalLeft);
+                                return w.badge ? `<span class="health-status-pill ${w.class}" style="min-width:auto; padding:2px 8px; margin-left:auto;">${w.text}${w.badge}</span>` : '';
+                            })()}
+                        </div>
+
+                        <!-- 基础体验包 -->
+                        <div class="credit-package-item">
+                            <div class="credit-package-header">
+                                <div class="credit-package-name">基础体验包</div>
+                                <div class="credit-package-meta">下次刷新时间: ${escapeHtml(basic.refresh_time)}</div>
+                            </div>
+                            <div class="credit-progress-track">
+                                <div class="credit-progress-fill" style="width: ${basicPct}%"></div>
+                            </div>
+                            <div class="credit-progress-values">
+                                <div class="left-val">${basic.used.toFixed(2)} / ${basic.total.toFixed(0)}</div>
+                                <div class="right-val">${basic.left.toFixed(2)} 剩余</div>
+                            </div>
+                        </div>
+
+                        <!-- 活动赠送包 -->
+                        <div class="credit-package-item">
+                            <div class="credit-package-header">
+                                <div>
+                                    <div class="credit-package-name">
+                                        活动赠送包
+                                        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px; background: rgba(0, 230, 118, 0.1); color: var(--success); border: 1px solid rgba(0, 230, 118, 0.2);">生效中</span>
+                                    </div>
+                                    <div class="credit-package-desc" style="margin-top: 4px;">活动赠送积分分期到期后自动失效，请在有效期内使用。</div>
+                                </div>
+                            </div>
+                            <div class="credit-progress-track">
+                                <div class="credit-progress-fill" style="width: ${giftPct}%"></div>
+                            </div>
+                            <div class="credit-progress-values">
+                                <div class="left-val">${gift.used.toFixed(2)} / ${gift.total.toFixed(0)}</div>
+                                <div class="right-val">${gift.left.toFixed(2)} 剩余</div>
+                            </div>
+                            <div>
+                                <button class="details-toggle" onclick="toggleDetails('gift-details-${chan.channel_id}', this)">
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    详情
+                                </button>
+                                ${giftSubHtml}
+                            </div>
+                        </div>
+
+                        <!-- 加量包 -->
+                        <div class="credit-package-item">
+                            <div class="credit-package-header">
+                                <div>
+                                    <div class="credit-package-name">
+                                        加量包
+                                        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px; background: rgba(255, 177, 66, 0.1); color: var(--warning); border: 1px solid rgba(255, 177, 66, 0.2);">会员专属</span>
+                                    </div>
+                                    <div class="credit-package-desc" style="margin-top: 4px;">如果专业版到期但加量包套餐仍有积分，可继续使用加量包资源直至加量包资源到期或耗尽。加量包有有效期 1 个月，到期失效。</div>
+                                </div>
+                            </div>
+                            <div class="credit-progress-track">
+                                <div class="credit-progress-fill" style="width: ${extraPct}%"></div>
+                            </div>
+                            <div class="credit-progress-values">
+                                <div class="left-val">${extra.total > 0 ? extra.used.toFixed(2) + ' / ' + extra.total.toFixed(0) : '- / -'}</div>
+                                <div class="right-val">${extra.total > 0 ? extra.left.toFixed(2) + ' 剩余' : '- 剩余'}</div>
+                            </div>
+                            <div>
+                                <button class="details-toggle" ${extra.packages && extra.packages.length > 0 ? '' : 'disabled'} onclick="toggleDetails('extra-details-${chan.channel_id}', this)">
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    详情
+                                </button>
+                                ${extraSubHtml}
+                            </div>
+                        </div>
+
+                        <div class="credits-footer-tip">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            <span>用量明细 用量数据存在 2-3 小时的数据延迟</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle detail sublist visibility
+        function toggleDetails(elementId, buttonEl) {
+            const el = document.getElementById(elementId);
+            if (el.style.display === 'none') {
+                el.style.display = 'flex';
+                buttonEl.classList.add('expanded');
+            } else {
+                el.style.display = 'none';
+                buttonEl.classList.remove('expanded');
+            }
+        }
+
+        // ============================================
+        // Theme Synchronization with Parent Document
+        // ============================================
+        function syncTheme() {
+            try {
+                if (window.parent && window.parent.document) {
+                    const parentDoc = window.parent.document;
+                    const isDark = parentDoc.body.classList.contains('dark') || 
+                                   parentDoc.documentElement.classList.contains('dark') ||
+                                   parentDoc.body.getAttribute('theme-mode') === 'dark' ||
+                                   parentDoc.documentElement.getAttribute('theme-mode') === 'dark';
+                    if (isDark) {
+                        document.body.classList.remove('light');
+                    } else {
+                        document.body.classList.add('light');
+                    }
+                }
+            } catch (e) {
+                const params = new URLSearchParams(window.location.search);
+                const theme = params.get('theme');
+                if (theme === 'light') {
+                    document.body.classList.add('light');
+                } else if (theme === 'dark') {
+                    document.body.classList.remove('light');
+                }
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', syncTheme);
+
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'theme-change') {
+                if (e.data.theme === 'light') {
+                    document.body.classList.add('light');
+                } else {
+                    document.body.classList.remove('light');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
